@@ -3,7 +3,7 @@
 
 int numOftasks; // number of tasks to be schduled
 int numOfProcessors; // bounded number of heteroenous processors
-double** dag; // adjacency matrix form
+double** dag; // adjacency matrix form for the input DAG
 double** computationCost; // the cost of processes on each processor table
 double** dataTransferRate; // the edge values of the DAG i.e. the transfer cost from one process to another
 double* upperRank; // the calculated upper ranks of each process
@@ -105,7 +105,7 @@ void displayInput() {
             }
         }
     }
-    puts("---------------------------");
+    puts("---------------------------\n");
 }
 
 double calculateAvgComputationCosts(int task) {
@@ -151,6 +151,57 @@ double calculateUpperRank(int task) {
     return upperRank[task];
 }
 
+// Structure used to sort indexes
+typedef struct Sort {
+    int index;
+    double val;
+} Sort;
+
+// Sorts in decreasing order based on the upper ranks of the tasks.
+// this is equivalent to a topological sort of a DAG
+void sortIndexes() {
+    Sort* arr = (Sort*)malloc(sizeof(Sort)*numOftasks);
+    int i, j;
+    for(i = 0; i < numOftasks; ++i) {
+        arr[i].index = i;
+        arr[i].val = upperRank[i];
+    }
+    for(i = 0; i < numOftasks; ++i) {
+        for(j = i + 1; j < numOftasks; ++j) {
+            if(arr[j].val > arr[i].val) {
+                int tempIndex = arr[i].index;
+                double tempVal = arr[i].val;
+                arr[i].val = arr[j].val;
+                arr[i].index = arr[j].index;
+                arr[j].val = tempVal;
+                arr[j].index = tempIndex;
+            }
+        }
+    }
+    for(i = 0; i < numOftasks; ++i) {
+        sortedTasks[i] = arr[i].index;
+    }
+    free(arr);
+}
+
+void calculateAndDisplayRanks() {
+    puts("UPPER RANKS");
+    puts("---------------------------");
+    puts("Task\tRank");
+    puts("---------------------------");
+    int i;
+    for(i = 0; i < numOftasks; ++i) {
+        calculateUpperRank(i);
+    }
+    sortIndexes();
+    for(i = 0; i < numOftasks; ++i) {
+        printf("%d\t%g\t\t|\n", sortedTasks[i]+1, upperRank[sortedTasks[i]]);
+    }
+    printf("\t\t\t˅\n");
+    printf("\t\tdecreasing order\n");
+    puts("---------------------------\n");
+}
+
 // Deallocated all memory that was allocated for the scheduler
 void freeSpace() {
     int i;
@@ -178,10 +229,7 @@ void freeSpace() {
 int main() {
     initEnvironment();
     displayInput();
-    int i;
-    for(i = 0; i < numOftasks; ++i) {
-        printf("%g\t", calculateUpperRank(i));
-    }
+    calculateAndDisplayRanks();
     freeSpace();
 	return 0;
 }
