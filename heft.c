@@ -1,22 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <float.h>
+#include "taskp.c"
 
 int numOftasks; // number of tasks to be schduled
 int numOfProcessors; // bounded number of heteroenous processors
 double** dag; // adjacency matrix form for the input DAG
 double** computationCost; // the cost of processes on each processor table
-double** dataTransferRate; // the edge values of the DAG i.e. the transfer cost from one process to another
 double* upperRank; // the calculated upper ranks of each process
 int* sortedTasks; // the sorted indexes of each processor based on their upper rank
+double* AFTs;
 
-// A structure to store the scheduled tasks.
-typedef struct TaskProcessor {
-    int processor;
-    double AST;
-    double AFT;
-} TaskProcessor;
+typedef struct ProcessorSchedule {
+    int size;
+    TaskProcessor* tasks;
+} ProcessorSchedule;
 
-TaskProcessor* schedule;
+ProcessorSchedule** processorSchedule;
 
 // This function intilizes the enovironment for the scheduler
 // it gets the value from the 'environment' text file based on a particular format
@@ -32,11 +33,6 @@ void initEnvironment() {
         computationCost[i] = (double*)malloc(sizeof(double)*numOfProcessors);
     }
 
-    dataTransferRate = (double**)malloc(sizeof(double*)*numOfProcessors);
-    for(i = 0; i < numOfProcessors; ++i) {
-        dataTransferRate[i] = (double*)malloc(sizeof(double)*numOfProcessors);
-    }
-
     dag = (double**)malloc(sizeof(double*)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
         dag[i] = (double*)malloc(sizeof(double)*numOftasks);
@@ -47,22 +43,24 @@ void initEnvironment() {
         upperRank[i] = -1;
     }
 
-    sortedTasks = (int*)malloc(sizeof(int));
-    schedule = (TaskProcessor*)malloc(sizeof(TaskProcessor)*numOftasks);
+    sortedTasks = (int*)malloc(sizeof(int)*numOftasks);
+
+    processorSchedule = (ProcessorSchedule**)malloc(sizeof(ProcessorSchedule*)*numOfProcessors);
+    for(i = 0; i < numOfProcessors; ++i) {
+        processorSchedule[i] = (ProcessorSchedule*)malloc(sizeof(ProcessorSchedule)*numOfProcessors);
+        processorSchedule[i]->size = 0;
+        processorSchedule[i]->tasks = NULL;
+    }
+
+    AFTs = (double*)malloc(sizeof(double)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
-        schedule[i].processor = -1;
+        AFTs[i] = -1;
     }
 
     int j;
     for(i = 0; i < numOftasks; ++i) {
         for(j = 0; j < numOfProcessors; ++j) {
             fscanf(fp, "%lf", &computationCost[i][j]);
-        }
-    }
-
-    for(i = 0; i < numOfProcessors; ++i) {
-        for(j = 0; j < numOfProcessors; ++j) {
-            fscanf(fp, "%lf", &dataTransferRate[i][j]);
         }
     }
 
@@ -108,6 +106,8 @@ void displayInput() {
     puts("---------------------------\n");
 }
 
+// A fucntion to compuete the average computation cost across all the 
+// processors for the given task
 double calculateAvgComputationCosts(int task) {
     int j;
     double avg = 0.0;
@@ -117,30 +117,16 @@ double calculateAvgComputationCosts(int task) {
     return avg/numOfProcessors;;
 }
 
-double avgCommunicationCost(int source, int destination)
-{
-    int i, j;
-    double avg = 0.0;
-    for(i = 0; i < numOfProcessors; ++i) {
-        for(j = 0; j < numOfProcessors; ++j)
-        {
-            if(dataTransferRate[i][j] != 0) {
-                avg += (dag[source][destination]/dataTransferRate[i][j]);
-            }
-        }
-    }
-    return avg/((numOfProcessors*numOfProcessors) - numOfProcessors);
-}
-
+// A function to calculate the upper rank of the provided task
 double calculateUpperRank(int task) {
     double max = 0.0;
     int i;
     for(i = 0; i < numOftasks; ++i) {
         if(dag[task][i] != -1) {
             if(upperRank[i] != -1) {
-                max = avgCommunicationCost(task, i) + upperRank[i];
+                max = dag[task][i] + upperRank[i];
             } else {
-                double cost = avgCommunicationCost(task, i) + calculateUpperRank(i);
+                double cost = dag[task][i] + calculateUpperRank(i);
                 if(cost > max) {
                     max = cost;
                 }
@@ -184,6 +170,8 @@ void sortIndexes() {
     free(arr);
 }
 
+// function that calculates the upper ranks of the input task,
+// sorts them in decreasing order and displays it to the user.
 void calculateAndDisplayRanks() {
     puts("UPPER RANKS");
     puts("---------------------------");
@@ -202,6 +190,99 @@ void calculateAndDisplayRanks() {
     puts("---------------------------\n");
 }
 
+// A function to determine whether the provided task
+// is an entry task or not
+bool isEntryTask(int task) {
+    int i;
+    for(i = 0; i < numOftasks; ++i) {
+        if(dag[i][task] != -1) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Function to calcuate the EST
+void calculateEST(int task, int processor, double* EST) {
+    double earliestTime;
+    if(processorSchedule[processor]->size == 0) {
+        earliestTime = 0.0;
+    } else {
+        avail(processorSchedule[processor]->tasks, processorSchedule[processor]->size, computationCost[task][processor], &earliestTime);
+    }
+    double max = DBL_MIN;
+    int i;
+    for(i = 0; i < numOftasks; ++i) {
+        if(dag[i][task] != -1) {
+            if(max < AFTs[i]) {
+                max = AFTs[i];
+            }
+        }
+    }
+    *EST = maxDouble(earliestTime, max);
+    return;
+}
+
+// HEFT scheduler function
+void heft() {
+    int i;
+    for(i = 0; i < numOftasks; ++i) {
+        int task = sortedTasks[i];
+        if(isEntryTask(task)) {
+            double min = DBL_MAX;
+            int processor;
+            int j;
+            for(j = 0; j < numOfProcessors; ++j) {
+                if(computationCost[task][j] < min) {
+                    min = computationCost[task][j];
+                    processor = j;
+                }
+            }
+            processorSchedule[processor]->tasks = (TaskProcessor*)malloc(sizeof(TaskProcessor));
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AST = 0.0;
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AFT = min;
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].process = task;
+            processorSchedule[processor]->size++;
+            AFTs[task] = min;
+        } else {
+            double min = DBL_MAX;
+            int processor;
+            int j;
+            for(j = 0; j < numOfProcessors; ++j) {
+                double EST;
+                calculateEST(task, j, &EST);
+                if(EST < min) {
+                    min = EST;
+                    processor = j;
+                }
+            }
+            processorSchedule[processor]->tasks = (TaskProcessor*)realloc(processorSchedule[processor]->tasks, sizeof(TaskProcessor));
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AST = min;
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AFT = min + computationCost[task][processor];
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].process = task;
+            processorSchedule[processor]->size++;
+        }
+    }
+}
+
+void displaySchedule() {
+    int i;
+    puts("HEFT SCHEDULE");
+    puts("---------------------------");
+    puts("Proc\tTask\tAST\tAFT");
+    puts("---------------------------");
+    for(i = 0; i < numOfProcessors; ++i) {
+        int j;
+        for(j = 0; j < processorSchedule[i]->size; ++j) {
+            printf("%d\t%d\t%g\t%g\n",
+                   i+1,
+                   processorSchedule[i]->tasks[j].process+1, 
+                   processorSchedule[i]->tasks[j].AST, 
+                   processorSchedule[i]->tasks[j].AFT);
+        }
+    }
+}
+
 // Deallocated all memory that was allocated for the scheduler
 void freeSpace() {
     int i;
@@ -210,26 +291,29 @@ void freeSpace() {
         free(computationCost[i]);
     }
 
-    for(i = 0; i < numOfProcessors; ++i) {
-        free(dataTransferRate[i]);
-    }
-
-    for(i = 0; i < numOftasks; i++) {
+    for(i = 0; i < numOftasks; ++i) {
         free(dag[i]);
     }
 
+    for(i = 0; i < numOfProcessors; ++i) {
+        free(processorSchedule[i]);
+    }
+
     free(computationCost);
-    free(dataTransferRate);
     free(dag);
     free(upperRank);
+    free(processorSchedule);
+    free(AFTs);
     free(sortedTasks);
-    free(schedule);
 }
 
+// Entry point of the program
 int main() {
     initEnvironment();
     displayInput();
     calculateAndDisplayRanks();
+    heft();
+    displaySchedule();
     freeSpace();
-	return 0;
+    return 0;
 }
