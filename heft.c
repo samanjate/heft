@@ -366,6 +366,7 @@ int main(int argc, char** argv) {
     if(argc <= 1 || argc > 2) {
         puts("Please provide just one file in the specified format.");
     }
+    printf("\n\n");
     puts("START");
     puts("---------------------------");
     initEnvironment(argv[1]);
