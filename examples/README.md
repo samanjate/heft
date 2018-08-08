@@ -41,4 +41,4 @@ While the code is designed to work across all platforms, the python files for co
 
 ### Running the output with HEFT
 
-Simply can add `os.system('./heft ./examples/your_file_name')` at the end of `run.py` file in the main folder. Compile and run. You should see the result of your input.
+Simply add `os.system('./heft ./examples/your_file_name')` at the end of `run.py` file in the main folder. Compile and run. You should see the result of your input.
