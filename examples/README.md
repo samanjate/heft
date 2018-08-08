@@ -30,7 +30,6 @@ You can now use the python files provided to compile and run the examples.
 
 ```
 $ python generate.py
-$ python run.py
 $ Enter number of tasks: 10
 $ Enter number of processors: 3
 $ Enter the file name you want to save the graph in: your_file_name
