@@ -31,7 +31,8 @@ void avail(TaskProcessor* tasks, int size, double computationCost, double* earli
     }
     qsort((void*) tasks, size, sizeof(TaskProcessor), comparator);
     int curr = 0;
-    for(int i = 1; i < size; ++i) {
+    int i;
+    for(i = 1; i < size; ++i) {
         if(tasks[i].AST - tasks[curr].AFT >= computationCost) {
             *earliestTime = tasks[curr].AFT;
             return;
