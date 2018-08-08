@@ -89,7 +89,7 @@ N rows
 
 The following DAG and compuation table can be represented as follows in example 1.
 
-<img src="images/3.png" alt="dag1" width="1000px"/> 
+<img src="images/3.png" alt="dag1" width="900px"/> 
 
 ## Authors
 
