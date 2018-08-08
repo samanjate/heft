@@ -1,6 +1,6 @@
 # Generator
 
-A random graph generator has been provided for you. This generates a fairly simply DAG based on the user input. The topological sort will give you a graph with rank 1 at each level and the vertices sorted in increasing order. This mean the graph will be long and thin.
+A random graph generator has been provided to you. This generates a fairly simply DAG based on the user input. The topological sort will give you a graph with rank 1 at each level and the vertices sorted in increasing order. This means the graph will be long and thin.
 
 ## Getting Started
 
