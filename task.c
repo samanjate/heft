@@ -1,9 +1,26 @@
+int numOftasks; // number of tasks to be schduled
+int numOfProcessors; // bounded number of heteroenous processors
+double** dag; // adjacency matrix form for the input DAG
+double** computationCost; // the cost of processes on each processor table
+double* upperRank; // the calculated upper ranks of each process
+int* sortedTasks; // the sorted indexes of each processor based on their upper rank
+double* AFTs; // to store the actual finish times of the task (represented by the index)
+int* proc; // the processor that the task is scheduled on (represented by the index)
+
 // A structure to store the scheduled tasks.
 typedef struct TaskProcessor {
     int process;
     double AST;
     double AFT;
 } TaskProcessor;
+
+// A structure that keeps track of the tasks scheduled processor wise.
+typedef struct ProcessorSchedule {
+    int size;
+    TaskProcessor* tasks;
+} ProcessorSchedule;
+
+ProcessorSchedule** processorSchedule;
 
 // This a comparator used by the qsort function to sort the tasks
 // based on their actual start times.
@@ -23,17 +40,4 @@ int max(int n, int m) {
 // double values
 double maxDouble(double n, double m) {
     return n > m ? n : m;
-}
-
-// A function to find an avaialble slot on a processors which has the tasks schedules as provided.
-// The number of tasks already scheduled is equal to the size provided.
-// This will be the first slot available
-void avail(TaskProcessor* tasks, int size, double computationCost, double* earliestTime) {
-    if(size == 0) {
-        *earliestTime = 0;
-        return;
-    }
-    qsort((void*) tasks, size, sizeof(TaskProcessor), comparator);
-    *earliestTime = tasks[size-1].AFT;
-    return;
 }

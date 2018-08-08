@@ -4,22 +4,6 @@
 #include <float.h>
 #include "task.c"
 
-int numOftasks; // number of tasks to be schduled
-int numOfProcessors; // bounded number of heteroenous processors
-double** dag; // adjacency matrix form for the input DAG
-double** computationCost; // the cost of processes on each processor table
-double* upperRank; // the calculated upper ranks of each process
-int* sortedTasks; // the sorted indexes of each processor based on their upper rank
-double* AFTs; // to store the actual finish times of the task (represented by the index)
-int* proc; // the processor that the task is scheduled on (represented by the index)
-
-// A structure that keeps track of the tasks scheduled processor wise.
-typedef struct ProcessorSchedule {
-    int size;
-    TaskProcessor* tasks;
-} ProcessorSchedule;
-ProcessorSchedule** processorSchedule;
-
 // This function intilizes the enovironment for the scheduler
 // it gets the value from the 'environment' text file based on a particular format
 // It also alloactes memory for the different data structures used by the scheduler
@@ -224,15 +208,47 @@ bool isEntryTask(int task) {
     return true;
 }
 
+
+// A function to find an avaialble slot on a processors which has the tasks schedules as provided.
+// The number of tasks already scheduled is equal to the size provided.
+// This will be the first slot available
+void avail(TaskProcessor* tasks, int size, double computationCost, double* earliestTime) {
+    if(size == 0) {
+        *earliestTime = 0;
+        return;
+    }
+    qsort((void*) tasks, size, sizeof(TaskProcessor), comparator);
+    int curr = 0;
+    int i;
+    for(i = 1; i < size; ++i) {
+        if(tasks[i].AST - tasks[curr].AFT >= computationCost) {
+            *earliestTime = tasks[curr].AFT;
+            return;
+        } else {
+            curr++;
+            tasks[curr] = tasks[i];
+        }
+    }
+    *earliestTime = tasks[curr].AFT;
+    //*earliestTime = tasks[size-1].AFT;
+    return;
+}
+
 // Function to calcuate the EST
 void calculateEST(int task, int processor, double* EST) {
     double earliestTime;
     if(processorSchedule[processor]->size == 0) {
         earliestTime = 0.0;
     } else {
+        int i, add = 0;
+        for(i = 0; i < numOftasks; ++i) {
+            if(dag[i][task] != -1 && AFTs[i] != -1 && proc[i] != processor) {
+                add = dag[i][task];
+            }
+        }
         avail(processorSchedule[processor]->tasks, 
               processorSchedule[processor]->size, 
-              computationCost[task][processor], &earliestTime);
+              computationCost[task][processor] + add, &earliestTime);
     }
     //printf("Earliest Available %g\n", earliestTime);
     double max = DBL_MIN;
@@ -349,7 +365,6 @@ void freeSpace() {
     }
 
     for(i = 0; i < numOfProcessors; ++i) {
-        int j;
         free(processorSchedule[i]->tasks);
         free(processorSchedule[i]);
     }
