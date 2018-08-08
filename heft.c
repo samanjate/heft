@@ -11,6 +11,7 @@ double** computationCost; // the cost of processes on each processor table
 double* upperRank; // the calculated upper ranks of each process
 int* sortedTasks; // the sorted indexes of each processor based on their upper rank
 double* AFTs;
+int* proc;
 
 typedef struct ProcessorSchedule {
     int size;
@@ -55,6 +56,11 @@ void initEnvironment() {
     AFTs = (double*)malloc(sizeof(double)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
         AFTs[i] = -1;
+    }
+
+    proc = (int*)malloc(sizeof(int)*numOftasks);
+    for(i = 0; i <numOftasks; ++i) {
+        proc[i] = -1;
     }
 
     int j;
@@ -210,16 +216,25 @@ void calculateEST(int task, int processor, double* EST) {
     } else {
         avail(processorSchedule[processor]->tasks, processorSchedule[processor]->size, computationCost[task][processor], &earliestTime);
     }
+    printf("Earliest Available %g\n", earliestTime);
     double max = DBL_MIN;
     int i;
     for(i = 0; i < numOftasks; ++i) {
         if(dag[i][task] != -1) {
-            if(max < AFTs[i]) {
-                max = AFTs[i];
+            if(proc[i] == processor) {
+                if(max < AFTs[i]) {
+                    max = AFTs[i];
+                }  
+            } else {
+                if(max < AFTs[i] + dag[i][task]) {
+                    max = AFTs[i] + dag[i][task];
+                }  
             }
+            
         }
     }
     *EST = maxDouble(earliestTime, max);
+    printf("EST on %d is %g\n\n", processor+1, *EST);
     return;
 }
 
@@ -228,6 +243,7 @@ void heft() {
     int i;
     for(i = 0; i < numOftasks; ++i) {
         int task = sortedTasks[i];
+        printf("Schdeuling %d\n", task+1);
         if(isEntryTask(task)) {
             double min = DBL_MAX;
             int processor;
@@ -244,23 +260,31 @@ void heft() {
             processorSchedule[processor]->tasks[processorSchedule[processor]->size].process = task;
             processorSchedule[processor]->size++;
             AFTs[task] = min;
+            proc[task] = processor;
+            printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, 0.0, min);
         } else {
-            double min = DBL_MAX;
+            double minEFT = DBL_MAX;
+            double selectedEST = -1;
             int processor;
             int j;
             for(j = 0; j < numOfProcessors; ++j) {
                 double EST;
                 calculateEST(task, j, &EST);
-                if(EST < min) {
-                    min = EST;
+                if(EST + computationCost[task][j] < minEFT) {
+                    minEFT = EST + computationCost[task][j];
+                    selectedEST = EST;
                     processor = j;
                 }
             }
-            processorSchedule[processor]->tasks = (TaskProcessor*)realloc(processorSchedule[processor]->tasks, sizeof(TaskProcessor));
-            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AST = min;
-            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AFT = min + computationCost[task][processor];
+            processorSchedule[processor]->tasks = (TaskProcessor*)realloc(processorSchedule[processor]->tasks, 
+                                                                          sizeof(TaskProcessor)*((processorSchedule[processor]->size) + 1));
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AST = selectedEST;
+            processorSchedule[processor]->tasks[processorSchedule[processor]->size].AFT = minEFT;
             processorSchedule[processor]->tasks[processorSchedule[processor]->size].process = task;
             processorSchedule[processor]->size++;
+            AFTs[task] = minEFT;
+            proc[task] = processor;
+            printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, selectedEST, minEFT);
         }
     }
 }
@@ -272,13 +296,14 @@ void displaySchedule() {
     puts("Proc\tTask\tAST\tAFT");
     puts("---------------------------");
     for(i = 0; i < numOfProcessors; ++i) {
+        TaskProcessor* tasks = processorSchedule[i]->tasks;
         int j;
         for(j = 0; j < processorSchedule[i]->size; ++j) {
             printf("%d\t%d\t%g\t%g\n",
                    i+1,
-                   processorSchedule[i]->tasks[j].process+1, 
-                   processorSchedule[i]->tasks[j].AST, 
-                   processorSchedule[i]->tasks[j].AFT);
+                   tasks[j].process+1, 
+                   tasks[j].AST, 
+                   tasks[j].AFT);
         }
     }
 }
@@ -304,6 +329,7 @@ void freeSpace() {
     free(upperRank);
     free(processorSchedule);
     free(AFTs);
+    free(proc);
     free(sortedTasks);
 }
 
