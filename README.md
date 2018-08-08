@@ -91,6 +91,13 @@ The following DAG and computation table can be represented as follows in example
 
 <img src="images/3.png" alt="dag1" width="850px"/> 
 
+### Running custom input
+
+You can create your own DAG and computation table as per the aforementioned format. To run your input, simple save the input file in the examples folder `name_of_you_file`. Then you can add `os.system('./heft ./examples/name_of_you_file')` at the end of `run.py` file.
+Simply compile and run. You should see the result of your input. 
+
+Note: the first argument of the program should be the correct path to your input file with the proper name and extention.
+
 ## Authors
 
 * [Samanjate Sood](https://samanjate.github.io/)
