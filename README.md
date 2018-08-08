@@ -59,7 +59,7 @@ While the code is designed to work across all platforms, the python files for co
 
 You should see outputs for the two examples as follows.
 
-| ![DAG1](images/1.png =250x) | ![DAG2](images/2.png =250x) |
+| <img src="images/1.png" alt="dag1" width="200px"/> | <img src="images/2.png" alt="dag2" width="200px"/> |
 |:---:|:---:|
 | output for example 1 | output for example 2 |
 
