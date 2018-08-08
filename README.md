@@ -59,7 +59,7 @@ While the code is designed to work across all platforms, the python files for co
 
 You should see outputs for the two examples as follows.
 
-| ![DAG1](images/1.png) | ![DAG2](images/2.png) |
+| ![DAG1](images/1.png=250x) | ![DAG2](images/2.png=250x) |
 |:---:|:---:|
 | output for example 1 | output for example 2 |
 
@@ -69,14 +69,16 @@ The input format takes in two numbers, the number of tasks(N) and the number of 
 
 ```
 N M
-........... ← M columns
+. . . ← M columns
+.
 .
 .
 .
 .
 ↑	
 N rows
-..... ← N columns
+. . . . . . ← N columns
+.
 .
 .
 .
