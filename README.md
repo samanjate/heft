@@ -1,6 +1,6 @@
 # CPU Scheduler
 
-A cpu scheduler that uses the HEFT algorithm, which is an insertion-based policy, to minimize the finish times of the given tasks on bounded number of heterogenous processors.
+A cpu scheduler that uses the HEFT algorithm, which is an insertion-based policy, to minimize the finish times of the given tasks on a bounded number of heterogenous processors.
 
 ## Paper
 
@@ -53,7 +53,7 @@ $ python run.py
 .
 ```
 
-While the code is designed to work across all platforms, the python files for compiling and running the programs are for linux-based systems. If you are on Windows, please use the `gcc heft.c -o heft` to create the excutable. The executable will take a DAG as an argument. Please find examples in the `examples` folder.
+While the code is designed to work across all platforms, the python files for compiling and running the programs are for linux-based systems. If you are on Windows, please use the `gcc heft.c -o heft` to create the excutable named `heft`. This executable will take a DAG as an argument. Please find DAG examples in the `examples` folder.
 
 ### Output
 
@@ -65,7 +65,7 @@ You should see outputs for the two examples as follows.
 
 ### Format of the examples
 
-The input format takes in two numbers, the number of tasks(N) and the number of processors(M). This is followed by a NxM matrix representing the compuation costs of the tasks(represented by row number) on a processor(represented by the column number). This is followed by a NxN matrix representing the communication cost from one processor to another, in case the following processor were to be scheduled on a different processor.
+The input format takes in two numbers, the number of tasks(N) and the number of processors(M). This is followed by a NxM matrix representing the compuation costs of the tasks(represented by row number) on a processor(represented by the column number). This is followed by a NxN matrix representing the communication cost from one processor to another, in case the following task were to be scheduled on a different processor.
 
 ```
 N M
