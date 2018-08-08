@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <float.h>
-#include "taskp.c"
+#include "task.c"
 
 int numOftasks; // number of tasks to be schduled
 int numOfProcessors; // bounded number of heteroenous processors
@@ -10,42 +10,51 @@ double** dag; // adjacency matrix form for the input DAG
 double** computationCost; // the cost of processes on each processor table
 double* upperRank; // the calculated upper ranks of each process
 int* sortedTasks; // the sorted indexes of each processor based on their upper rank
-double* AFTs;
-int* proc;
+double* AFTs; // to store the actual finish times of the task (represented by the index)
+int* proc; // the processor that the task is scheduled on (represented by the index)
 
+// A structure that keeps track of the tasks scheduled processor wise.
 typedef struct ProcessorSchedule {
     int size;
     TaskProcessor* tasks;
 } ProcessorSchedule;
-
 ProcessorSchedule** processorSchedule;
 
 // This function intilizes the enovironment for the scheduler
 // it gets the value from the 'environment' text file based on a particular format
 // It also alloactes memory for the different data structures used by the scheduler
-void initEnvironment() {
+void initEnvironment(char* input) {
     FILE *fp;
-    fp = fopen("environment2.txt", "r+");
+    printf("Running: %s\n", input);
+    puts("---------------------------");
+    fp = fopen(input, "r+");
     fscanf(fp, "%d%d", &numOftasks, &numOfProcessors);
+    int i, j;
 
-    int i;
+    // A 2D array that stores the computation costs of every task on each processor
     computationCost = (double**)malloc(sizeof(double*)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
         computationCost[i] = (double*)malloc(sizeof(double)*numOfProcessors);
     }
 
+    // A 2D array to store the communication costs of the switching from one task to another
+    // This only applies if the processor is changed between the scheduling of the two tasks
     dag = (double**)malloc(sizeof(double*)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
         dag[i] = (double*)malloc(sizeof(double)*numOftasks);
     }
 
+    // A data structure to store the computed upper ranks of each task (represented by the index)
     upperRank = (double*)malloc(sizeof(double)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
         upperRank[i] = -1;
     }
 
+    // An array that stores the sorted tasks in decreasing order as per the upper ranks
+    // this is equivalent to a topological sort of a DAG
     sortedTasks = (int*)malloc(sizeof(int)*numOftasks);
 
+    // Initializing the process schduler data structure used to store the scheduling information
     processorSchedule = (ProcessorSchedule**)malloc(sizeof(ProcessorSchedule*)*numOfProcessors);
     for(i = 0; i < numOfProcessors; ++i) {
         processorSchedule[i] = (ProcessorSchedule*)malloc(sizeof(ProcessorSchedule)*numOfProcessors);
@@ -53,23 +62,26 @@ void initEnvironment() {
         processorSchedule[i]->tasks = NULL;
     }
 
+    // initializing the AFT array
     AFTs = (double*)malloc(sizeof(double)*numOftasks);
     for(i = 0; i < numOftasks; ++i) {
         AFTs[i] = -1;
     }
 
+    // Initializing the processor array
     proc = (int*)malloc(sizeof(int)*numOftasks);
     for(i = 0; i <numOftasks; ++i) {
         proc[i] = -1;
     }
 
-    int j;
+    // getting the input fot the computation costs from the input file
     for(i = 0; i < numOftasks; ++i) {
         for(j = 0; j < numOfProcessors; ++j) {
             fscanf(fp, "%lf", &computationCost[i][j]);
         }
     }
 
+    // getting the input fot the communication costs from the input file
     for(i = 0; i < numOftasks; ++i) {
         for(j = 0; j < numOftasks; ++j) {
             fscanf(fp, "%lf", &dag[i][j]);
@@ -132,13 +144,14 @@ double calculateUpperRank(int task) {
     int i;
     for(i = 0; i < numOftasks; ++i) {
         if(dag[task][i] != -1) {
+            double cost;
             if(upperRank[i] != -1) {
-                max = dag[task][i] + upperRank[i];
+                cost = dag[task][i] + upperRank[i];
             } else {
-                double cost = dag[task][i] + calculateUpperRank(i);
-                if(cost > max) {
-                    max = cost;
-                }
+                cost = dag[task][i] + calculateUpperRank(i);
+            }
+            if(cost > max) {
+                max = cost;
             }
         }
     }
@@ -217,7 +230,9 @@ void calculateEST(int task, int processor, double* EST) {
     if(processorSchedule[processor]->size == 0) {
         earliestTime = 0.0;
     } else {
-        avail(processorSchedule[processor]->tasks, processorSchedule[processor]->size, computationCost[task][processor], &earliestTime);
+        avail(processorSchedule[processor]->tasks, 
+              processorSchedule[processor]->size, 
+              computationCost[task][processor], &earliestTime);
     }
     //printf("Earliest Available %g\n", earliestTime);
     double max = DBL_MIN;
@@ -279,8 +294,9 @@ void heft() {
                     processor = j;
                 }
             }
-            processorSchedule[processor]->tasks = (TaskProcessor*)realloc(processorSchedule[processor]->tasks, 
-                                                                          sizeof(TaskProcessor)*((processorSchedule[processor]->size) + 1));
+            processorSchedule[processor]->tasks 
+                            = (TaskProcessor*)realloc(processorSchedule[processor]->tasks, 
+                                                      sizeof(TaskProcessor)*((processorSchedule[processor]->size) + 1));
             processorSchedule[processor]->tasks[processorSchedule[processor]->size].AST = selectedEST;
             processorSchedule[processor]->tasks[processorSchedule[processor]->size].AFT = minEFT;
             processorSchedule[processor]->tasks[processorSchedule[processor]->size].process = task;
@@ -346,12 +362,19 @@ void freeSpace() {
 }
 
 // Entry point of the program
-int main() {
-    initEnvironment();
+int main(int argc, char** argv) {
+    if(argc <= 1 || argc > 2) {
+        puts("Please provide just one file in the specified format.");
+    }
+    puts("START");
+    puts("---------------------------");
+    initEnvironment(argv[1]);
     displayInput();
     calculateAndDisplayRanks();
     heft();
     displaySchedule();
     freeSpace();
+    puts("END");
+    puts("---------------------------");
     return 0;
 }
