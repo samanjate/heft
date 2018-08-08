@@ -349,6 +349,8 @@ void freeSpace() {
     }
 
     for(i = 0; i < numOfProcessors; ++i) {
+        int j;
+        free(processorSchedule[i]->tasks);
         free(processorSchedule[i]);
     }
 
