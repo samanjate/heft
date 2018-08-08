@@ -25,7 +25,7 @@ ProcessorSchedule** processorSchedule;
 // It also alloactes memory for the different data structures used by the scheduler
 void initEnvironment() {
     FILE *fp;
-    fp = fopen("environment.txt", "r+");
+    fp = fopen("environment2.txt", "r+");
     fscanf(fp, "%d%d", &numOftasks, &numOfProcessors);
 
     int i;
@@ -125,6 +125,9 @@ double calculateAvgComputationCosts(int task) {
 
 // A function to calculate the upper rank of the provided task
 double calculateUpperRank(int task) {
+    if(upperRank[task] != -1) {
+        return upperRank[task];
+    }
     double max = 0.0;
     int i;
     for(i = 0; i < numOftasks; ++i) {
@@ -216,7 +219,7 @@ void calculateEST(int task, int processor, double* EST) {
     } else {
         avail(processorSchedule[processor]->tasks, processorSchedule[processor]->size, computationCost[task][processor], &earliestTime);
     }
-    printf("Earliest Available %g\n", earliestTime);
+    //printf("Earliest Available %g\n", earliestTime);
     double max = DBL_MIN;
     int i;
     for(i = 0; i < numOftasks; ++i) {
@@ -234,7 +237,7 @@ void calculateEST(int task, int processor, double* EST) {
         }
     }
     *EST = maxDouble(earliestTime, max);
-    printf("EST on %d is %g\n\n", processor+1, *EST);
+    //printf("EST on %d is %g\n\n", processor+1, *EST);
     return;
 }
 
@@ -243,7 +246,7 @@ void heft() {
     int i;
     for(i = 0; i < numOftasks; ++i) {
         int task = sortedTasks[i];
-        printf("Schdeuling %d\n", task+1);
+        //printf("Schdeuling %d\n", task+1);
         if(isEntryTask(task)) {
             double min = DBL_MAX;
             int processor;
@@ -261,7 +264,7 @@ void heft() {
             processorSchedule[processor]->size++;
             AFTs[task] = min;
             proc[task] = processor;
-            printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, 0.0, min);
+            //printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, 0.0, min);
         } else {
             double minEFT = DBL_MAX;
             double selectedEST = -1;
@@ -284,7 +287,7 @@ void heft() {
             processorSchedule[processor]->size++;
             AFTs[task] = minEFT;
             proc[task] = processor;
-            printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, selectedEST, minEFT);
+            //printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, selectedEST, minEFT);
         }
     }
 }
@@ -306,6 +309,15 @@ void displaySchedule() {
                    tasks[j].AFT);
         }
     }
+    puts("---------------------------");
+    double makespan = DBL_MIN;
+    for(i = 0; i < numOftasks; ++i) {
+        if(makespan < AFTs[i]) {
+            makespan = AFTs[i];
+        }
+    }
+    printf("Makespan = %g\n", makespan);
+     puts("---------------------------");
 }
 
 // Deallocated all memory that was allocated for the scheduler
