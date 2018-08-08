@@ -86,6 +86,7 @@ N rows
 ↑
 N rows
 ```
+<img src="images/3.png" alt="dag1" width="600px"/> 
 
 ## Authors
 
