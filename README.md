@@ -97,12 +97,7 @@ You can create your own DAG and computation table as per the aforementioned form
 
 Note: the first argument of the program should be the correct path to your input file with the proper name and extension.
 
-There is a random graph generator provided to you for getting started.
-
-## Authors
-
-* [Samanjate Sood](https://samanjate.github.io/)
-* [Ryan Joshua D'silva](https://github.com/RJXIII)
+There is a random graph generator provided to you for getting started
 
 ## References
 
