@@ -4,11 +4,11 @@ A cpu scheduler that uses the HEFT algorithm, which is an insertion-based policy
 
 ## Paper
 
-Read more about the project and implementation details [here]().
+Read more about the project and implementation details [here](https://github.com/samanjate/heft/blob/master/documentation/cpu-scheduler-implementation.pdf).
 
 ## Video
 
-Watch how the code works [here]().
+Watch how the code works [here](https://youtu.be/h3rks2PvXHE).
 
 ## Getting Started
 
